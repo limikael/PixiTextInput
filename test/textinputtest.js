@@ -13,9 +13,10 @@ setInterval(function() {
 	renderer.render(stage);
 }, 1000 / 60);
 
-var input = new PixiTextInput("hello");
+var input = new PixiTextInput();
 input.position.x = 100;
 input.position.y = 100;
+input.text=123;
 stage.addChild(input);
 
 var style = {

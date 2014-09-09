@@ -12,6 +12,8 @@ function PixiTextInput(text, style) {
 	if (!text)
 		text = "";
 
+	text = text.toString();
+
 	if (style && style.wordWrap)
 		throw "wordWrap is not supported for input fields";
 
@@ -379,7 +381,7 @@ Object.defineProperty(PixiTextInput.prototype, "text", {
 	},
 
 	set: function(v) {
-		this._text = v;
+		this._text = v.toString();
 		this.scrollIndex = 0;
 		this.caretIndex = 0;
 		this.blur();
