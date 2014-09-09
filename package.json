@@ -1,0 +1,24 @@
+{
+  "name": "pixitextinput",
+  "version": "0.0.1",
+  "description": "Text input field for pixi.js",
+  "dependencies": {},
+  "devDependencies": {
+    "browserify": "^5.11.1",
+    "grunt": "^0.4.5",
+    "grunt-ftpush": "^0.3.3",
+    "pixi.js": "^1.6.1",
+    "qsub": "0.0.2",
+    "yuidocjs": "^0.3.50"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/limikael/pixitextinput.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/limikael/pixitextinput/issues"
+  },
+  "homepage": "https://github.com/limikael/pixitextinput"
+}

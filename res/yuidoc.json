@@ -1,0 +1,10 @@
+{
+	"name": "pixitextinput",
+	"description": "Text input field for pixi.js",
+	"version": "0.1",
+	"options": {
+		"outdir": "doc",
+		"paths": "src",
+		"preprocessor": "res/yuidoc_die_on_warnings.js"
+	}
+}
