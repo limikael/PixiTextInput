@@ -3,7 +3,7 @@ if (typeof module !== 'undefined') {
 }
 
 /**
- * Text input field for pixi.js.
+ * Text input field for pixi.js. Travis?
  * @class PixiTextInput
  */
 function PixiTextInput(text, style) {
