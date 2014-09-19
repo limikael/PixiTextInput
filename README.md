@@ -10,7 +10,7 @@ https://rawgit.com/limikael/pixitextinput/master/test/index.html
 About
 -----
 
-This is a very early implementation of a text input field for pixi.js.
+This is an early implementation of a text input field for pixi.js.
 
 Use it like this:
 
@@ -20,32 +20,24 @@ Use it like this:
     // We need a container
     var container = new PIXI.DisplayObjectContainer();
 
-    // Same style options as PIXI.Text;
+    // Same style options as PIXI.Text
     var style={/*...*/};
 
     var inputField = new PixiTextInput("hello",style);
     container.addChild(inputField);
 
-Some functions:
+See the docs for more info:
 
-    // Set width of the input field. Note, it will _not_ scale
-    inputField.width = 200;
+http://limikael.altervista.org/pixitextinput/
 
-    // Register a listener on content change
-    inputField.change = function() {};
+Todo
+----
 
-    // Read current text.
-    var text = inputField.text;
+Stuff on the to do list. I.e. this does not exists yet:
 
-Check the source code for more docs!
-
-Notes
------
-
-It is a very early test! Stuff that doesn't work:
-
-* There is no clipboard functionality at all.
-* Doesn't work on touch screens at all.
+* Implement clipboard.
+* Make it work on touch screens.
+* Make sure it works with CocoonJS.
 * Setting the text works, but the caret will jump to the beginning in a funny way.
 
 Questions:
