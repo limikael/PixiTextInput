@@ -38,6 +38,7 @@ Stuff on the to do list. I.e. this does not exists yet:
 * Implement clipboard.
 * Make it work on touch screens.
 * Make sure it works with CocoonJS.
+* Focusin and Focusout callbacks.
 * Setting the text works, but the caret will jump to the beginning in a funny way.
 
 Questions:
