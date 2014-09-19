@@ -4,11 +4,12 @@
   "description": "Text input field for pixi.js",
   "dependencies": {},
   "devDependencies": {
+    "async": "^0.9.0",
     "browserify": "^5.11.1",
     "grunt": "^0.4.5",
-    "grunt-ftpush": "^0.3.3",
+    "grunt-cli": "^0.1.13",
     "pixi.js": "^1.6.1",
-    "qsub": "0.0.2",
+    "qsub": "0.0.4",
     "yuidocjs": "^0.3.50"
   },
   "repository": {
