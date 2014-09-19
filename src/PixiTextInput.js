@@ -3,11 +3,24 @@ if (typeof module !== 'undefined') {
 }
 
 /**
- * Text input field for pixi.js. 
+ * Text input field for pixi.js.
+ * A simple example:
+ *
+ *     // We need a container
+ *     var container = new PIXI.DisplayObjectContainer();
+ *
+ *     // Same style options as PIXI.Text
+ *     var style={ ... };
+ *
+ *     var inputField = new PixiTextInput("hello",style);
+ *     container.addChild(inputField);
+ *
+ * The style definitions accepted by the constructor are the same as those accepted by
+ * [PIXI.Text](http://www.goodboydigital.com/pixijs/docs/classes/Text.html).
  * @class PixiTextInput
  * @constructor
- * @param {String} text The initial text.
- * @param {Object} style Style definition, same as PIXI.Tex
+ * @param {String} [text] The initial text.
+ * @param {Object} [style] Style definition, same as for PIXI.Text
  */
 function PixiTextInput(text, style) {
 	PIXI.DisplayObjectContainer.call(this);
@@ -359,6 +372,7 @@ PixiTextInput.prototype.getCaretIndexByCoord = function(x) {
  * makes the field larger. If you actually want to scale it,
  * use the scale property.
  * @property width
+ * @type Number
  */
 Object.defineProperty(PixiTextInput.prototype, "width", {
 	get: function() {
@@ -377,6 +391,7 @@ Object.defineProperty(PixiTextInput.prototype, "width", {
  * The text in the input field. Setting will have the implicit function of resetting the scroll
  * of the input field and removing focus.
  * @property text
+ * @type String
  */
 Object.defineProperty(PixiTextInput.prototype, "text", {
 	get: function() {
@@ -394,7 +409,16 @@ Object.defineProperty(PixiTextInput.prototype, "text", {
 
 /**
  * The color of the background for the input field.
+ * This needs to be specified as an integer, not using HTML
+ * notation, e.g. for red background:
+ *
+ *     myInputText.backgroundColor = 0xff0000;
+ *
+ * In order for the background to be drawn, the `background`
+ * property needs to be true. If not, this property will have
+ * no effect.
  * @property backgroundColor
+ * @type Integer
  */
 Object.defineProperty(PixiTextInput.prototype, "backgroundColor", {
 	get: function() {
@@ -410,6 +434,7 @@ Object.defineProperty(PixiTextInput.prototype, "backgroundColor", {
 /**
  * The color of the caret.
  * @property caretColor
+ * @type Integer
  */
 Object.defineProperty(PixiTextInput.prototype, "caretColor", {
 	get: function() {
@@ -423,8 +448,11 @@ Object.defineProperty(PixiTextInput.prototype, "caretColor", {
 });
 
 /**
- * Should a background be shown?
+ * Determines if the background should be drawn behind the text.
+ * The color of the background is specified using the backgroundColor
+ * property.
  * @property background
+ * @type Boolean
  */
 Object.defineProperty(PixiTextInput.prototype, "background", {
 	get: function() {
@@ -440,6 +468,7 @@ Object.defineProperty(PixiTextInput.prototype, "background", {
 /**
  * Set text.
  * @method setText
+ * @param {String} text The new text.
  */
 PixiTextInput.prototype.setText = function(v) {
 	this.text = v;
