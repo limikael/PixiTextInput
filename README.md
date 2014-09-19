@@ -33,14 +33,12 @@ http://limikael.altervista.org/pixitextinput/
 Todo
 ----
 
-Stuff on the to do list. I.e. this does not exists yet:
+Stuff on the to do list, i.e. this does not work yet:
 
-* Implement clipboard.
+* Implement selection and clipboard.
 * Make it work on touch screens.
 * Make sure it works with CocoonJS.
-* Focusin and Focusout callbacks.
-* Setting the text works, but the caret will jump to the beginning in a funny way.
-
-Questions:
-
-* Should there be a border?
+* Focusin and focusout callbacks.
+* Don't lose focus when setting text.
+* Implement scrollIndex and caretIndex so they are readable and writable and behave in a sane way, also if the text is changed.
+* Add a border.
