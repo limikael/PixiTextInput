@@ -3,8 +3,11 @@ if (typeof module !== 'undefined') {
 }
 
 /**
- * Text input field for pixi.js. Hello world... blalba...
+ * Text input field for pixi.js. 
  * @class PixiTextInput
+ * @constructor
+ * @param {String} text The initial text.
+ * @param {Object} style Style definition, same as PIXI.Tex
  */
 function PixiTextInput(text, style) {
 	PIXI.DisplayObjectContainer.call(this);
