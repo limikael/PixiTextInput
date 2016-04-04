@@ -7,7 +7,7 @@ if (typeof module !== 'undefined') {
  * A simple example:
  *
  *     // We need a container
- *     var container = new PIXI.DisplayObjectContainer();
+ *     var container = new PIXI.Container();
  *
  *     // Same style options as PIXI.Text
  *     var style={ ... };
@@ -23,7 +23,7 @@ if (typeof module !== 'undefined') {
  * @param {Object} [style] Style definition, same as for PIXI.Text
  */
 function PixiTextInput(text, style) {
-	PIXI.DisplayObjectContainer.call(this);
+	PIXI.Container.call(this);
 
 	if (!text)
 		text = "";
@@ -81,7 +81,7 @@ function PixiTextInput(text, style) {
 	this.change = null;
 }
 
-PixiTextInput.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+PixiTextInput.prototype = Object.create(PIXI.Container.prototype);
 PixiTextInput.prototype.constructor = PixiTextInput;
 
 /**
