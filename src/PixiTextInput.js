@@ -44,8 +44,9 @@ function PixiTextInput(text, style) {
 	this.textField = new PIXI.Text(this._text, style);
 
 	this.localHeight =
-		this.textField.determineFontHeight('font: ' + this.textField.style.font + ';') +
+		this.textField.style.fontSize +
 		this.textField.style.strokeThickness;
+
 	this.backgroundGraphics = new PIXI.Graphics();
 	this.textFieldMask = new PIXI.Graphics();
 	this.caret = new PIXI.Graphics();
@@ -90,7 +91,7 @@ PixiTextInput.prototype.constructor = PixiTextInput;
  * @private
  */
 PixiTextInput.prototype.onBackgroundMouseDown = function(e) {
-	var x = e.getLocalPosition(this).x;
+	var x = this.toLocal(e.data.global).x;
 	this._caretIndex = this.getCaretIndexByCoord(x);
 	this.updateCaretPosition();
 
