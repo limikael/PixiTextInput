@@ -21,8 +21,9 @@ if (typeof module !== 'undefined') {
  * @constructor
  * @param {String} [text] The initial text.
  * @param {Object} [style] Style definition, same as for PIXI.Text
+ * @param {Boolean} [password] Indicate if field should be shown as a password field
  */
-function PixiTextInput(text, style) {
+function PixiTextInput(text, style, password) {
 	PIXI.Container.call(this);
 
 	if (!text)
@@ -38,14 +39,24 @@ function PixiTextInput(text, style) {
 	this.localWidth = 100;
 	this._backgroundColor = 0xffffff;
 	this._caretColor = 0x000000;
+	this._borderColor = 0x000000;
+	this._borderWidth = 0;
 	this._background = true;
+	this._password = false;
+	this._value = text;
+
+	if ( typeof password !== "undefined" && password !== undefined && password === true ) {
+		this._password = true;
+		this.syncValue();
+	}
 
 	this.style = style;
-	this.textField = new PIXI.Text(this._text, style);
+	this.textField = new PIXI.Text(this._value, style);
 
 	this.localHeight =
 		this.textField.style.fontSize +
-		this.textField.style.strokeThickness;
+		this.textField.style.strokeThickness
+		+ 4;
 
 	this.backgroundGraphics = new PIXI.Graphics();
 	this.textFieldMask = new PIXI.Graphics();
@@ -137,6 +148,8 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 			String.fromCharCode(e.charCode) +
 			this._text.substring(this._caretIndex);
 
+		this.syncValue();
+
 		this._caretIndex++;
 		this.ensureCaretInView();
 		this.showCaret();
@@ -153,6 +166,8 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 						this._text.substring(0, this._caretIndex - 1) +
 						this._text.substring(this._caretIndex);
 
+					this.syncValue();
+
 					this._caretIndex--;
 					this.ensureCaretInView();
 					this.showCaret();
@@ -166,6 +181,8 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 				this._text =
 					this._text.substring(0, this._caretIndex) +
 					this._text.substring(this._caretIndex + 1);
+
+				this.syncValue();
 
 				this.ensureCaretInView();
 				this.updateCaretPosition();
@@ -266,7 +283,7 @@ PixiTextInput.prototype.updateCaretPosition = function() {
 		return;
 	}
 
-	var sub = this._text.substring(0, this._caretIndex).substring(this.scrollIndex);
+	var sub = this._value.substring(0, this._caretIndex).substring(this.scrollIndex);
 	this.caret.position.x = this.textField.context.measureText(sub).width;
 }
 
@@ -276,7 +293,20 @@ PixiTextInput.prototype.updateCaretPosition = function() {
  * @private
  */
 PixiTextInput.prototype.updateText = function() {
-	this.textField.setText(this._text.substring(this.scrollIndex));
+	this.textField.setText(this._value.substring(this.scrollIndex));
+}
+
+/**
+ * Sync the password field value
+ * @method syncValue
+ * @private
+ */
+PixiTextInput.prototype.syncValue = function() {
+	if (this._password) {
+		this._value = this._text.replace(/./g,"*");
+	} else {
+		this._value = this._text;
+	}
 }
 
 /**
@@ -288,8 +318,13 @@ PixiTextInput.prototype.drawElements = function() {
 	this.backgroundGraphics.clear();
 	this.backgroundGraphics.beginFill(this._backgroundColor);
 
+	if (this._borderWidth > 0) {
+		this.backgroundGraphics.lineStyle( this._borderWidth, this._borderColor );
+	}
+
 	if (this._background)
 		this.backgroundGraphics.drawRect(0, 0, this.localWidth, this.localHeight);
+
 
 	this.backgroundGraphics.endFill();
 	this.backgroundGraphics.hitArea = new PIXI.Rectangle(0, 0, this.localWidth, this.localHeight);
@@ -401,6 +436,7 @@ Object.defineProperty(PixiTextInput.prototype, "text", {
 
 	set: function(v) {
 		this._text = v.toString();
+		this.syncValue();
 		this.scrollIndex = 0;
 		this.caretIndex = 0;
 		this.blur();
@@ -431,6 +467,29 @@ Object.defineProperty(PixiTextInput.prototype, "backgroundColor", {
 		this.drawElements();
 	}
 });
+
+Object.defineProperty(PixiTextInput.prototype, "borderColor", {
+	get: function() {
+		return this._borderColor;
+	},
+
+	set: function(v) {
+		this._borderColor = v;
+		this.drawElements();
+	}
+});
+
+Object.defineProperty(PixiTextInput.prototype, "borderWidth", {
+	get: function() {
+		return this._borderWidth;
+	},
+
+	set: function(v) {
+		this._borderWidth = v;
+		this.drawElements();
+	}
+});
+
 
 /**
  * The color of the caret.
