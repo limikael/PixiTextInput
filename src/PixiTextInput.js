@@ -22,9 +22,11 @@ if (typeof module !== 'undefined') {
  * @param {String} [text] The initial text.
  * @param {Object} [style] Style definition, same as for PIXI.Text
  * @param {Boolean} [password] Indicate if field should be shown as a password field
+ * @param {Boolean} [useNativeTextInput] Indicate if the textfield should create a native fallback for mobile
  */
-function PixiTextInput(text, style, password) {
+function PixiTextInput(text, style, password, useNativeTextInput) {
 	PIXI.Container.call(this);
+	window.pixiTextInputTarget = this;
 
 	if (!text)
 		text = "";
@@ -35,6 +37,11 @@ function PixiTextInput(text, style, password) {
 		throw "wordWrap is not supported for input fields";
 
 	this._text = text;
+
+	if (useNativeTextInput) {
+		this._nativeTextInput = this.getNativeTextInput(password);
+		this.bindNativeTextInput();
+	}
 
 	this.localWidth = 100;
 	this._backgroundColor = 0xffffff;
@@ -102,6 +109,7 @@ PixiTextInput.prototype.constructor = PixiTextInput;
  * @private
  */
 PixiTextInput.prototype.onBackgroundMouseDown = function(e) {
+	this._nativeTextInput.focus();
 	var x = this.toLocal(e.data.global).x;
 	this._caretIndex = this.getCaretIndexByCoord(x);
 	this.updateCaretPosition();
@@ -120,12 +128,15 @@ PixiTextInput.prototype.onBackgroundMouseDown = function(e) {
  * @method focus
  */
 PixiTextInput.prototype.focus = function() {
+	window.pixiTextInputTarget = this;
 	this.blur();
 
 	document.addEventListener("keydown", this.keyEventClosure);
 	document.addEventListener("keypress", this.keyEventClosure);
 	document.addEventListener("mousedown", this.documentMouseDownClosure);
 	window.addEventListener("blur", this.windowBlurClosure);
+
+	this._nativeTextInput.focus();
 
 	this.showCaret();
 }
@@ -259,6 +270,7 @@ PixiTextInput.prototype.blur = function() {
  * @private
  */
 PixiTextInput.prototype.onDocumentMouseDown = function() {
+	this._nativeTextInput.blur();
 	if (!this.isFocusClick)
 		this.blur();
 }
@@ -269,6 +281,7 @@ PixiTextInput.prototype.onDocumentMouseDown = function() {
  * @private
  */
 PixiTextInput.prototype.onWindowBlur = function() {
+	this._nativeTextInput.blur();
 	this.blur();
 }
 
@@ -531,6 +544,10 @@ Object.defineProperty(PixiTextInput.prototype, "background", {
  * @param {String} text The new text.
  */
 PixiTextInput.prototype.setText = function(v) {
+	if ( typeof this._nativeTextInput !== undefined && this._nativeTextInput !== null ) {
+		this._nativeTextInput.value = v;
+	}
+
 	this.text = v;
 }
 
@@ -542,6 +559,43 @@ PixiTextInput.prototype.setText = function(v) {
 PixiTextInput.prototype.trigger = function(fn, e) {
 	if (fn)
 		fn(e);
+}
+
+/**
+ * Get or create a native text input for mobile support
+ * @method getNativeTextInput
+ * @private
+ */
+PixiTextInput.prototype.getNativeTextInput = function(pw) {
+	var elmName = "PixiTextInput";
+	var elm = document.getElementById( elmName );
+
+	if ( !elm ) {
+		var elm = document.createElement( "input" );
+		document.body.appendChild( elm );
+		elm.style.position = "fixed";
+		elm.style.top = "-100px";
+		elm.style.left = "-100px";
+
+		if ( pw ) {
+			elm.type = "password";
+		}
+	}
+
+	return elm;
+}
+
+/**
+ * Bind events for the native text input
+ * @method bindNativeTextInput
+ * @private
+ */
+PixiTextInput.prototype.bindNativeTextInput = function() {
+
+	this._nativeTextInput.addEventListener( "keyup", function( e ) {
+		window.pixiTextInputTarget.text = this.value;
+	} );
+
 }
 
 if (typeof module !== 'undefined') {
