@@ -37,6 +37,7 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 		throw "wordWrap is not supported for input fields";
 
 	this._text = text;
+	this._placeholder = "";
 
 	if (useNativeTextInput) {
 		this._nativeTextInput = this.getNativeTextInput(password);
@@ -64,6 +65,8 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 		this.textField.style.fontSize +
 		this.textField.style.strokeThickness
 		+ 4;
+
+	this.textColor = this.textField.style.fill;
 
 	this.backgroundGraphics = new PIXI.Graphics();
 	this.textFieldMask = new PIXI.Graphics();
@@ -98,6 +101,8 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 	this.keypress = null;
 	this.keydown = null;
 	this.change = null;
+
+	this.ctrlDown = false;
 }
 
 PixiTextInput.prototype = Object.create(PIXI.Container.prototype);
@@ -109,7 +114,9 @@ PixiTextInput.prototype.constructor = PixiTextInput;
  * @private
  */
 PixiTextInput.prototype.onBackgroundMouseDown = function(e) {
-	this._nativeTextInput.focus();
+	if (this._nativeTextInput) {
+		this._nativeTextInput.focus();
+	}
 	var x = this.toLocal(e.data.global).x;
 	this._caretIndex = this.getCaretIndexByCoord(x);
 	this.updateCaretPosition();
@@ -133,10 +140,13 @@ PixiTextInput.prototype.focus = function() {
 
 	document.addEventListener("keydown", this.keyEventClosure);
 	document.addEventListener("keypress", this.keyEventClosure);
+	document.addEventListener("keyup", this.keyEventClosure);
 	document.addEventListener("mousedown", this.documentMouseDownClosure);
 	window.addEventListener("blur", this.windowBlurClosure);
 
-	this._nativeTextInput.focus();
+	if(this._nativeTextInput) {
+		this._nativeTextInput.focus();
+	}
 
 	this.showCaret();
 }
@@ -151,9 +161,12 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 	console.log(e);*/
 
 	if (e.type == "keypress") {
-		if (e.charCode < 32)
+		if (e.charCode < 32){
 			return;
-
+		}
+		if(e.charCode==32){
+			e.preventDefault();
+		}
 		this._text =
 			this._text.substring(0, this._caretIndex) +
 			String.fromCharCode(e.charCode) +
@@ -188,6 +201,30 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 				this.trigger(this.change);
 				break;
 
+			case 17:
+				this.ctrlDown = true;
+				break;
+
+			case 35:
+				this._caretIndex = this._text.length;
+				e.preventDefault();
+
+				this.ensureCaretInView();
+				this.updateCaretPosition();
+				this.showCaret();
+				this.updateText();
+				break;
+
+			case 36:
+				this._caretIndex = 0;
+				e.preventDefault();
+
+				this.ensureCaretInView();
+				this.updateCaretPosition();
+				this.showCaret();
+				this.updateText();
+				break;
+
 			case 46:
 				this._text =
 					this._text.substring(0, this._caretIndex) +
@@ -204,9 +241,12 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 				break;
 
 			case 39:
-				this._caretIndex++;
-				if (this._caretIndex > this._text.length)
-					this._caretIndex = this._text.length;
+				if(this.ctrlDown && this._caretIndex+1 < this._text.length){
+					var nextPosition = this._text.indexOf(" ", this._caretIndex);
+					if(nextPosition!=this._caretIndex){
+						this._caretIndex = (nextPosition!=-1)?nextPosition:this._text.length;
+					} else this.moveCarretRight();
+				} else this.moveCarretRight();
 
 				this.ensureCaretInView();
 				this.updateCaretPosition();
@@ -215,18 +255,54 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 				break;
 
 			case 37:
-				this._caretIndex--;
-				if (this._caretIndex < 0)
-					this._caretIndex = 0;
-
+				if(this.ctrlDown && this._caretIndex+1 > 0){
+					var nextPosition = this._text.lastIndexOf(" ", this._caretIndex-1);
+					if(nextPosition!=this._caretIndex){
+						this._caretIndex = (nextPosition!=-1)?nextPosition:0;
+					} else this.moveCarretLeft();
+				} else {
+					this._caretIndex--;
+					if (this._caretIndex < 0){
+						this._caretIndex = 0;
+					}
+				}
 				this.ensureCaretInView();
 				this.updateCaretPosition();
 				this.showCaret();
 				this.updateText();
 				break;
+
+			case 65:
+				if(this.ctrlDown){
+					e.preventDefault();
+				}
 		}
 
 		this.trigger(this.keydown, e);
+	}
+
+	if(e.type == "keyup"){
+		switch (e.keyCode) {
+			case 17:
+				this.ctrlDown = false;
+				break;
+			default:
+
+		}
+	}
+}
+
+PixiTextInput.prototype.moveCarretRight = function(){
+	this._caretIndex++;
+	if (this._caretIndex > this._text.length){
+		this._caretIndex = this._text.length;
+	}
+}
+
+PixiTextInput.prototype.moveCarretLeft = function(){
+	this._caretIndex--;
+	if (this._caretIndex < 0){
+		this._caretIndex = 0;
 	}
 }
 
@@ -270,7 +346,9 @@ PixiTextInput.prototype.blur = function() {
  * @private
  */
 PixiTextInput.prototype.onDocumentMouseDown = function() {
-	this._nativeTextInput.blur();
+	if (this._nativeTextInput) {
+		this._nativeTextInput.blur();
+	}
 	if (!this.isFocusClick)
 		this.blur();
 }
@@ -281,7 +359,9 @@ PixiTextInput.prototype.onDocumentMouseDown = function() {
  * @private
  */
 PixiTextInput.prototype.onWindowBlur = function() {
-	this._nativeTextInput.blur();
+	if (this._nativeTextInput) {
+		this._nativeTextInput.blur();
+	}
 	this.blur();
 }
 
@@ -306,7 +386,7 @@ PixiTextInput.prototype.updateCaretPosition = function() {
  * @private
  */
 PixiTextInput.prototype.updateText = function() {
-	this.textField.setText(this._value.substring(this.scrollIndex));
+	this.textField.text = this._value.substring(this.scrollIndex);
 }
 
 /**
@@ -315,8 +395,18 @@ PixiTextInput.prototype.updateText = function() {
  * @private
  */
 PixiTextInput.prototype.syncValue = function() {
+	if(this.textField && this.textField.style.fill!=this.textColor){
+		this.textField.style.fill = this.textColor;
+		this.textField.alpha = 1;
+	}
 	if (this._password) {
 		this._value = this._text.replace(/./g,"*");
+	} else if(this._text.length==0 && this._placeholder) {
+		this._value = this._placeholder;
+		if(this.textField){
+			this.textField.style.fill = 0xCCCCCC;
+			this.textField.alpha = 0.5;
+		}
 	} else {
 		this._value = this._text;
 	}
@@ -539,12 +629,30 @@ Object.defineProperty(PixiTextInput.prototype, "background", {
 });
 
 /**
+ * Determines if the background should be drawn behind the text.
+ * The color of the background is specified using the backgroundColor
+ * property.
+ * @property background
+ * @type Boolean
+ */
+Object.defineProperty(PixiTextInput.prototype, "placeholder", {
+	get: function() {
+		return this._placeholder;
+	},
+
+	set: function(v) {
+		this._placeholder = v;
+		this.syncValue();
+	}
+});
+
+/**
  * Set text.
  * @method setText
  * @param {String} text The new text.
  */
 PixiTextInput.prototype.setText = function(v) {
-	if ( typeof this._nativeTextInput !== undefined && this._nativeTextInput !== null ) {
+	if(this._nativeTextInput) {
 		this._nativeTextInput.value = v;
 	}
 
@@ -592,9 +700,11 @@ PixiTextInput.prototype.getNativeTextInput = function(pw) {
  */
 PixiTextInput.prototype.bindNativeTextInput = function() {
 
-	this._nativeTextInput.addEventListener( "keyup", function( e ) {
-		window.pixiTextInputTarget.text = this.value;
-	} );
+	if(this._nativeTextInput) {
+		this._nativeTextInput.addEventListener("keyup", function(e) {
+			window.pixiTextInputTarget.text = this.value;
+		});
+	}
 
 }
 
