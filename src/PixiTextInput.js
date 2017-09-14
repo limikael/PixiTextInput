@@ -37,6 +37,7 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 		throw "wordWrap is not supported for input fields";
 
 	this._text = text;
+	this._placeholder = "";
 
 	if (useNativeTextInput) {
 		this._nativeTextInput = this.getNativeTextInput(password);
@@ -64,6 +65,8 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 		this.textField.style.fontSize +
 		this.textField.style.strokeThickness
 		+ 4;
+
+	this.textColor = this.textField.style.fill;
 
 	this.backgroundGraphics = new PIXI.Graphics();
 	this.textFieldMask = new PIXI.Graphics();
@@ -154,13 +157,16 @@ PixiTextInput.prototype.focus = function() {
  * @private
  */
 PixiTextInput.prototype.onKeyEvent = function(e) {
-	console.log("key event");
-	console.log(e);
+	/*console.log("key event");
+	console.log(e);*/
 
 	if (e.type == "keypress") {
-		if (e.charCode < 32)
+		if (e.charCode < 32){
 			return;
-
+		}
+		if(e.charCode==32){
+			e.preventDefault();
+		}
 		this._text =
 			this._text.substring(0, this._caretIndex) +
 			String.fromCharCode(e.charCode) +
@@ -197,6 +203,26 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 
 			case 17:
 				this.ctrlDown = true;
+				break;
+
+			case 35:
+				this._caretIndex = this._text.length;
+				e.preventDefault();
+
+				this.ensureCaretInView();
+				this.updateCaretPosition();
+				this.showCaret();
+				this.updateText();
+				break;
+
+			case 36:
+				this._caretIndex = 0;
+				e.preventDefault();
+
+				this.ensureCaretInView();
+				this.updateCaretPosition();
+				this.showCaret();
+				this.updateText();
 				break;
 
 			case 46:
@@ -245,6 +271,11 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 				this.showCaret();
 				this.updateText();
 				break;
+
+			case 65:
+				if(this.ctrlDown){
+					e.preventDefault();
+				}
 		}
 
 		this.trigger(this.keydown, e);
@@ -364,8 +395,18 @@ PixiTextInput.prototype.updateText = function() {
  * @private
  */
 PixiTextInput.prototype.syncValue = function() {
+	if(this.textField && this.textField.style.fill!=this.textColor){
+		this.textField.style.fill = this.textColor;
+		this.textField.alpha = 1;
+	}
 	if (this._password) {
 		this._value = this._text.replace(/./g,"*");
+	} else if(this._text.length==0 && this._placeholder) {
+		this._value = this._placeholder;
+		if(this.textField){
+			this.textField.style.fill = 0xCCCCCC;
+			this.textField.alpha = 0.5;
+		}
 	} else {
 		this._value = this._text;
 	}
@@ -584,6 +625,24 @@ Object.defineProperty(PixiTextInput.prototype, "background", {
 	set: function(v) {
 		this._background = v;
 		this.drawElements();
+	}
+});
+
+/**
+ * Determines if the background should be drawn behind the text.
+ * The color of the background is specified using the backgroundColor
+ * property.
+ * @property background
+ * @type Boolean
+ */
+Object.defineProperty(PixiTextInput.prototype, "placeholder", {
+	get: function() {
+		return this._placeholder;
+	},
+
+	set: function(v) {
+		this._placeholder = v;
+		this.syncValue();
 	}
 });
 
