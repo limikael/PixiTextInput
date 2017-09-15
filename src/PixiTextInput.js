@@ -70,10 +70,12 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 
 	this.backgroundGraphics = new PIXI.Graphics();
 	this.textFieldMask = new PIXI.Graphics();
+	this.selectionGraphics = new PIXI.Graphics();
 	this.caret = new PIXI.Graphics();
 	this.drawElements();
 
 	this.addChild(this.backgroundGraphics);
+	this.addChild(this.selectionGraphics);
 	this.addChild(this.textField);
 	this.addChild(this.caret);
 	this.addChild(this.textFieldMask);
@@ -81,6 +83,7 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 	this.scrollIndex = 0;
 	this._caretIndex = 0;
 	this.caretFlashInterval = null;
+	this._secondCaretIndex = 0;
 	this.blur();
 	this.updateCaretPosition();
 
@@ -103,6 +106,7 @@ function PixiTextInput(text, style, password, useNativeTextInput) {
 	this.change = null;
 
 	this.ctrlDown = false;
+	this.shiftDown = false;
 }
 
 PixiTextInput.prototype = Object.create(PIXI.Container.prototype);
@@ -138,10 +142,18 @@ PixiTextInput.prototype.focus = function() {
 	window.pixiTextInputTarget = this;
 	this.blur();
 
+	this.handleCopyReference = this.handleCopy.bind(this);
+	document.addEventListener("copy", this.handleCopyReference);
+	this.handleCutReference = this.handleCut.bind(this);
+	document.addEventListener("cut", this.handleCutReference);
+	this.handlePasteReference = this.handlePaste.bind(this);
+	document.addEventListener("paste", this.handlePasteReference);
+
 	document.addEventListener("keydown", this.keyEventClosure);
 	document.addEventListener("keypress", this.keyEventClosure);
 	document.addEventListener("keyup", this.keyEventClosure);
 	document.addEventListener("mousedown", this.documentMouseDownClosure);
+
 	window.addEventListener("blur", this.windowBlurClosure);
 
 	if(this._nativeTextInput) {
@@ -157,8 +169,9 @@ PixiTextInput.prototype.focus = function() {
  * @private
  */
 PixiTextInput.prototype.onKeyEvent = function(e) {
-	/*console.log("key event");
-	console.log(e);*/
+	//console.log("key event");
+	//console.log(e);
+	//console.log(this.scrollIndex);
 
 	if (e.type == "keypress") {
 		if (e.charCode < 32){
@@ -167,25 +180,44 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 		if(e.charCode==32){
 			e.preventDefault();
 		}
+		if(this.ctrlDown && (e.charCode==67 ||
+			 									 e.charCode==99 ||
+											   e.charCode==86 ||
+											   e.charCode==118 ||
+											   e.charCode==88 ||
+											   e.charCode==120) ){
+			//console.log("ctrl+c|v|x");
+			return;
+		}
+
+		if(this._selection){
+			this.deleteSelectedText();
+			this.moveCarretRight();
+		}
+
 		this._text =
 			this._text.substring(0, this._caretIndex) +
 			String.fromCharCode(e.charCode) +
 			this._text.substring(this._caretIndex);
 
+		this._selection = false;
 		this.syncValue();
 
 		this._caretIndex++;
 		this.ensureCaretInView();
 		this.showCaret();
 		this.updateText();
+		this.drawElements();
 		this.trigger(this.keypress, e);
 		this.trigger(this.change);
 	}
 
 	if (e.type == "keydown") {
 		switch (e.keyCode) {
-			case 8:
-				if (this._caretIndex > 0) {
+			case 8: //backspace
+				if(this._selection){
+					this.deleteSelectedText();
+				} else if (this._caretIndex > 0) {
 					this._text =
 						this._text.substring(0, this._caretIndex - 1) +
 						this._text.substring(this._caretIndex);
@@ -199,6 +231,10 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 				}
 				e.preventDefault();
 				this.trigger(this.change);
+				break;
+
+			case 16://shift
+				this.shiftDown = true;
 				break;
 
 			case 17:
@@ -240,42 +276,71 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 				this.trigger(this.change);
 				break;
 
-			case 39:
-				if(this.ctrlDown && this._caretIndex+1 < this._text.length){
-					var nextPosition = this._text.indexOf(" ", this._caretIndex);
-					if(nextPosition!=this._caretIndex){
-						this._caretIndex = (nextPosition!=-1)?nextPosition:this._text.length;
-					} else this.moveCarretRight();
-				} else this.moveCarretRight();
-
-				this.ensureCaretInView();
-				this.updateCaretPosition();
-				this.showCaret();
-				this.updateText();
-				break;
-
-			case 37:
-				if(this.ctrlDown && this._caretIndex+1 > 0){
-					var nextPosition = this._text.lastIndexOf(" ", this._caretIndex-1);
-					if(nextPosition!=this._caretIndex){
-						this._caretIndex = (nextPosition!=-1)?nextPosition:0;
-					} else this.moveCarretLeft();
-				} else {
-					this._caretIndex--;
-					if (this._caretIndex < 0){
-						this._caretIndex = 0;
-					}
+			case 39://right arrow
+				if(this.shiftDown && !this._selection){
+					this._selection=true;
+					this._secondCaretIndex = this._caretIndex;
 				}
+				/*if(this.shiftDown && this._selection){
+					if(this._secondCaretIndex+1<this._text.length){
+						this._secondCaretIndex++;
+					}
+				} else {*/
+					if(this.ctrlDown && this._caretIndex+1 < this._text.length){
+						var nextPosition = this._text.indexOf(" ", this._caretIndex);
+						if(nextPosition!=this._caretIndex){
+							this._caretIndex = (nextPosition!=-1)?nextPosition:this._text.length;
+						} else this.moveCarretRight();
+					} else this.moveCarretRight();
+				//}
+				if(!this.shiftDown){
+					this._selection = false;
+				}
+
 				this.ensureCaretInView();
 				this.updateCaretPosition();
 				this.showCaret();
 				this.updateText();
+				this.drawElements();
 				break;
 
-			case 65:
+			case 37://left arrow
+				if(this.shiftDown && !this._selection){
+					this._selection=true;
+					this._secondCaretIndex = this._caretIndex;
+				}
+				/*if(this.shiftDown && this._selection){
+					if(this._secondCaretIndex+1>0){
+						this._secondCaretIndex--;
+					}
+				} else {*/
+					if(this.ctrlDown && this._caretIndex+1 > 0){
+						var nextPosition = this._text.lastIndexOf(" ", this._caretIndex-1);
+						if(nextPosition!=this._caretIndex){
+							this._caretIndex = (nextPosition!=-1)?nextPosition:0;
+						} else this.moveCarretLeft();
+					} else this.moveCarretLeft();
+				//}
+				if(!this.shiftDown){
+					this._selection = false;
+				}
+
+				this.ensureCaretInView();
+				this.updateCaretPosition();
+				this.showCaret();
+				this.updateText();
+				this.drawElements();
+				break;
+
+			case 65://A
 				if(this.ctrlDown){
+					this._selection = true;
+					this._caretIndex = 0;
+					this._secondCaretIndex = this._text.length;
+					this.drawElements();
 					e.preventDefault();
 				}
+				break;
 		}
 
 		this.trigger(this.keydown, e);
@@ -283,6 +348,9 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 
 	if(e.type == "keyup"){
 		switch (e.keyCode) {
+			case 16:
+				this.shiftDown = false;
+				break;
 			case 17:
 				this.ctrlDown = false;
 				break;
@@ -292,17 +360,100 @@ PixiTextInput.prototype.onKeyEvent = function(e) {
 	}
 }
 
+PixiTextInput.prototype.handleCopy = function(e){
+	e.clipboardData.setData('text/plain', this.getSelectedText());
+	e.preventDefault();
+}
+
+PixiTextInput.prototype.handleCut = function(e){
+	e.clipboardData.setData('text/plain', this.getSelectedText());
+	if(this._selection){
+		this.deleteSelectedText();
+		this.moveCarretRight();
+	}
+	e.preventDefault();
+}
+
+PixiTextInput.prototype.handlePaste = function(e){
+	var txtToInsert = e.clipboardData.getData('text/plain');
+	if(this._selection){
+		this.deleteSelectedText();
+		this.moveCarretRight();
+	}
+	this.insertText(txtToInsert);
+	e.preventDefault();
+}
+
+PixiTextInput.prototype.deleteSelectedText = function(e){
+	var startPosition;
+	var endPosition;
+	if(this._caretIndex>this._secondCaretIndex){
+		startPosition = this._secondCaretIndex;
+		endPosition = this._caretIndex;
+	} else {
+		startPosition = this._caretIndex;
+		endPosition = this._secondCaretIndex;
+	}
+	if(startPosition==0 && endPosition==this._text.length){
+		this._text = "";
+	} else {
+		this._text =
+		this._text.substring(0, startPosition) +
+		this._text.substring(endPosition);
+	}
+
+	this._selection = false;
+
+	this.syncValue();
+
+	this._caretIndex=startPosition;
+	if(this._caretIndex<0){
+		this._caretIndex=0;
+	}
+	this.ensureCaretInView();
+	this.showCaret();
+	this.updateText();
+	this.drawElements();
+}
+
+PixiTextInput.prototype.insertText = function(txt){
+	this._text = this._text.substring(0, this._caretIndex)
+						 + txt
+						 + this._text.substring(this._caretIndex);
+
+	this._selection = false;
+	this._caretIndex += txt.length;
+	this.updateCaretPosition();
+	this.syncValue();
+	this.ensureCaretInView();
+	this.showCaret();
+	this.updateText();
+	this.drawElements();
+}
+
 PixiTextInput.prototype.moveCarretRight = function(){
-	this._caretIndex++;
-	if (this._caretIndex > this._text.length){
-		this._caretIndex = this._text.length;
+	if(this._selection && !this.shiftDown){
+		if(this._caretIndex<this._secondCaretIndex){
+			this._caretIndex = this._secondCaretIndex;
+		}
+	} else {
+		this._caretIndex++;
+		if (this._caretIndex > this._text.length){
+			this._caretIndex = this._text.length;
+		}
 	}
 }
 
 PixiTextInput.prototype.moveCarretLeft = function(){
-	this._caretIndex--;
-	if (this._caretIndex < 0){
-		this._caretIndex = 0;
+	if(this._selection && !this.shiftDown){
+		if(this._caretIndex>this._secondCaretIndex){
+			this._caretIndex = this._secondCaretIndex;
+		}
+	} else {
+		this._caretIndex--;
+		if (this._caretIndex < 0){
+			this._caretIndex = 0;
+		}
 	}
 }
 
@@ -332,8 +483,13 @@ PixiTextInput.prototype.ensureCaretInView = function() {
  * @method blur
  */
 PixiTextInput.prototype.blur = function() {
+	document.removeEventListener("copy", this.handleCopyReference);
+	document.removeEventListener("cut", this.handleCutReference);
+	document.removeEventListener("paste", this.handlePasteReference);
+
 	document.removeEventListener("keydown", this.keyEventClosure);
 	document.removeEventListener("keypress", this.keyEventClosure);
+	document.removeEventListener("keyup", this.keyEventClosure);
 	document.removeEventListener("mousedown", this.documentMouseDownClosure);
 	window.removeEventListener("blur", this.windowBlurClosure);
 
@@ -425,9 +581,41 @@ PixiTextInput.prototype.drawElements = function() {
 		this.backgroundGraphics.lineStyle( this._borderWidth, this._borderColor );
 	}
 
-	if (this._background)
+	if (this._background) {
 		this.backgroundGraphics.drawRect(0, 0, this.localWidth, this.localHeight);
+	}
 
+	this.selectionGraphics.clear();
+	if(this._selection && this._caretIndex!=this._secondCaretIndex){
+		var selectionStart;
+		var selectionEnd;
+		var offset = 0;
+		if(this._caretIndex>this._secondCaretIndex){
+			selectionStart = this._secondCaretIndex;
+			selectionEnd = this._caretIndex;
+		} else {
+			selectionStart = this._caretIndex;
+			selectionEnd = this._secondCaretIndex;
+		}
+		if(selectionStart>0){
+			offset = this.textField.context.measureText(this._text.substring(0, selectionStart)).width;
+			if(this.scrollIndex){
+				offset -= this.textField.context.measureText(this._text.substring(0, this.scrollIndex)).width;
+			}
+		}
+		var sub = this._text.substring(selectionStart, selectionEnd);
+		var selectedWidth = this.textField.context.measureText(sub).width;
+		if(offset+selectedWidth>this.localWidth){
+			selectedWidth = this.localWidth-offset;
+		}
+
+		/*
+		var sub = this._value.substring(0, this._caretIndex).substring(this.scrollIndex);
+		this.caret.position.x = this.textField.context.measureText(sub).width;
+		*/
+		this.selectionGraphics.beginFill(0xDDDDDD, 0.3);
+		this.selectionGraphics.drawRect(offset, 0, selectedWidth, this.localHeight)
+	}
 
 	this.backgroundGraphics.endFill();
 	this.backgroundGraphics.hitArea = new PIXI.Rectangle(0, 0, this.localWidth, this.localHeight);
@@ -502,6 +690,17 @@ PixiTextInput.prototype.getCaretIndexByCoord = function(x) {
 	}
 
 	return this.scrollIndex + cand;
+}
+
+PixiTextInput.prototype.getSelectedText = function(){
+	if(this._selection){
+		if(this._caretIndex<this._secondCaretIndex){
+			return this._text.substring(this._caretIndex, this._secondCaretIndex);
+		} else if(this._caretIndex>this._secondCaretIndex){
+			return this._text.substring(this._secondCaretIndex, this._caretIndex);
+		}
+	}
+	return "";
 }
 
 /**
